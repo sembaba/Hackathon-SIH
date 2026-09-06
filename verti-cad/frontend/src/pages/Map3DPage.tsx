@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ThreeDCadastreMap, CameraMode } from '../map/ThreeDCadastreMap';
 import { FloorExplorer } from '../components/FloorExplorer';
@@ -24,6 +24,8 @@ import {
   XCircle,
   ChevronDown,
   ChevronUp,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 
 interface Map3DPageProps {
@@ -49,6 +51,10 @@ export const Map3DPage: React.FC<Map3DPageProps> = ({ searchQuery, onClearSearch
   const [isConflictIsolated, setIsConflictIsolated] = useState<boolean>(false);
   const [showUnderground, setShowUnderground] = useState<boolean>(false);
   const [showConflictModal, setShowConflictModal] = useState<boolean>(false);
+
+  // ── Full Page / Fullscreen View ──────────────────────────
+  const [isFullPage, setIsFullPage] = useState<boolean>(false);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
 
   // ── NEW: Camera & Render Controls ───────────────────────
   const [cameraMode, setCameraMode] = useState<CameraMode>('surface');
@@ -139,6 +145,61 @@ export const Map3DPage: React.FC<Map3DPageProps> = ({ searchQuery, onClearSearch
       if (onClearSearch) onClearSearch();
     }
   }, [searchQuery, searchParams, properties, floors]);
+
+  // ── Full Page View Handler ──────────────────────────────
+  const handleToggleFullPage = useCallback(() => {
+    if (!isFullPage) {
+      setIsFullPage(true);
+      if (mapContainerRef.current?.requestFullscreen) {
+        mapContainerRef.current.requestFullscreen().catch(() => {});
+      }
+      showToast('📺 Full Page View active — Press Esc or F to exit');
+    } else {
+      setIsFullPage(false);
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+      showToast('Exited Full Page View');
+    }
+  }, [isFullPage]);
+
+  // Fullscreen change & Keyboard shortcut listeners (Esc or F key)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement && isFullPage) {
+        setIsFullPage(false);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+      if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        handleToggleFullPage();
+      } else if (e.key === 'Escape' && isFullPage) {
+        handleToggleFullPage();
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isFullPage, handleToggleFullPage]);
+
+  // Trigger resize when isFullPage changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      window.dispatchEvent(new Event('resize'));
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [isFullPage]);
 
   // ── Handlers ─────────────────────────────────────────────
   const handleResetView = () => {
@@ -234,7 +295,19 @@ export const Map3DPage: React.FC<Map3DPageProps> = ({ searchQuery, onClearSearch
   };
 
   return (
-    <div className="map-page-container">
+    <div ref={mapContainerRef} className={`map-page-container ${isFullPage ? 'fullpage-mode' : ''}`}>
+      {/* ─── Full Page Mode Floating Badge ───────────────── */}
+      {isFullPage && (
+        <div
+          className="fullpage-mode-badge"
+          onClick={handleToggleFullPage}
+          title="Click to exit full page view (or press Esc / F)"
+        >
+          <Minimize2 size={12} />
+          <span>FULL PAGE 3D CADASTRE &bull; PRESS ESC TO EXIT</span>
+        </div>
+      )}
+
       {/* 3D Cadastre Engine */}
       <ThreeDCadastreMap
         parcels={parcels}
@@ -251,10 +324,12 @@ export const Map3DPage: React.FC<Map3DPageProps> = ({ searchQuery, onClearSearch
         cameraMode={cameraMode}
         clipFloorY={clipFloorY}
         showPointCloud={showPointCloud}
+        isFullPage={isFullPage}
         onSelectFloor={setSelectedFloor}
         onSelectProperty={setSelectedProperty}
         onResetView={handleResetView}
         onCameraMode={handleCameraMode}
+        onToggleFullPage={handleToggleFullPage}
       />
 
       {/* ─── Top Action Bar ─────────────────────────────── */}
@@ -264,6 +339,16 @@ export const Map3DPage: React.FC<Map3DPageProps> = ({ searchQuery, onClearSearch
           right: selectedProperty ? '380px' : '1rem',
         }}
       >
+        {/* Full Page View button */}
+        <button
+          onClick={handleToggleFullPage}
+          className={`btn btn-sm map-top-btn ${isFullPage ? 'btn-primary active-fullpage' : 'btn-secondary'}`}
+          title={isFullPage ? 'Exit Full Page View (Esc or F)' : 'Full Page View — Expand 3D Map (Press F)'}
+        >
+          {isFullPage ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+          <span>{isFullPage ? 'Exit Full Page' : 'Full Page'}</span>
+        </button>
+
         {/* Conflict button */}
         <button
           onClick={handleTriggerConflictFlow}

@@ -54,6 +54,8 @@ interface ThreeDCadastreMapProps {
   onSelectProperty: (property: PropertyUnit | null) => void;
   onResetView: () => void;
   onCameraMode?: (mode: CameraMode) => void;
+  isFullPage?: boolean;
+  onToggleFullPage?: () => void;
 }
 
 // ─── Moving Vehicle Types & Generator ─────────────────────────
@@ -492,6 +494,8 @@ export const ThreeDCadastreMap: React.FC<ThreeDCadastreMapProps> = ({
   onSelectProperty,
   onResetView,
   onCameraMode,
+  isFullPage,
+  onToggleFullPage,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -612,11 +616,20 @@ export const ThreeDCadastreMap: React.FC<ThreeDCadastreMapProps> = ({
       if (!mountRef.current || !rendererRef.current || !cameraRef.current) return;
       const w = mountRef.current.clientWidth;
       const h = mountRef.current.clientHeight;
+      if (w === 0 || h === 0) return;
       cameraRef.current.aspect = w / h;
       cameraRef.current.updateProjectionMatrix();
       rendererRef.current.setSize(w, h);
     };
     window.addEventListener('resize', handleResize);
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && mountRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        handleResize();
+      });
+      resizeObserver.observe(mountRef.current);
+    }
 
     // Animation loop
     const animate = () => {
@@ -676,6 +689,7 @@ export const ThreeDCadastreMap: React.FC<ThreeDCadastreMapProps> = ({
       if (animationFrameIdRef.current) cancelAnimationFrame(animationFrameIdRef.current);
       renderer.domElement.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('resize', handleResize);
+      resizeObserver?.disconnect();
       renderer.dispose();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1804,6 +1818,10 @@ export const ThreeDCadastreMap: React.FC<ThreeDCadastreMapProps> = ({
   }, []);
 
   const toggleFullscreen = useCallback(() => {
+    if (onToggleFullPage) {
+      onToggleFullPage();
+      return;
+    }
     if (!document.fullscreenElement) {
       mountRef.current?.requestFullscreen().catch(() => {});
       setIsFullscreen(true);
@@ -1811,7 +1829,7 @@ export const ThreeDCadastreMap: React.FC<ThreeDCadastreMapProps> = ({
       document.exitFullscreen().catch(() => {});
       setIsFullscreen(false);
     }
-  }, []);
+  }, [onToggleFullPage]);
 
   // ── Render ────────────────────────────────────────────────
   return (
@@ -1913,8 +1931,12 @@ export const ThreeDCadastreMap: React.FC<ThreeDCadastreMapProps> = ({
         >
           <Layers size={16} />
         </button>
-        <button onClick={toggleFullscreen} className="map-control-btn" title="Fullscreen">
-          {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+        <button
+          onClick={toggleFullscreen}
+          className={`map-control-btn ${(isFullPage ?? isFullscreen) ? 'active' : ''}`}
+          title={(isFullPage ?? isFullscreen) ? 'Exit Full Page View (Esc)' : 'Full Page View (Full Screen)'}
+        >
+          {(isFullPage ?? isFullscreen) ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
         </button>
       </div>
 

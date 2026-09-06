@@ -12,7 +12,8 @@ import {
   ChevronDown,
   ChevronUp,
   Info,
-  MapPin
+  MapPin,
+  User
 } from 'lucide-react';
 
 interface PropertyDetailsDrawerProps {
@@ -221,6 +222,43 @@ export const PropertyDetailsDrawer: React.FC<PropertyDetailsDrawerProps> = ({
           fontSize: '0.8rem',
         }}
       >
+        {/* Flat Owner — full-width, highlighted */}
+        <div
+          style={{
+            background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+            padding: '0.65rem 0.75rem',
+            borderRadius: '6px',
+            border: '1px solid #bfdbfe',
+            gridColumn: 'span 2',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.65rem',
+          }}
+        >
+          <div
+            style={{
+              background: '#2563eb',
+              borderRadius: '50%',
+              width: '30px',
+              height: '30px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <User size={15} color="#ffffff" />
+          </div>
+          <div>
+            <div style={{ color: '#1d4ed8', fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Registered Owner
+            </div>
+            <div style={{ fontWeight: 700, color: '#1e3a8a', fontSize: '0.92rem', marginTop: '0.05rem' }}>
+              {property.owner_name || 'Not Recorded'}
+            </div>
+          </div>
+        </div>
+
         <div style={{ background: '#f8fafc', padding: '0.5rem', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
           <div style={{ color: '#64748b', fontSize: '0.7rem' }}>Building</div>
           <div style={{ fontWeight: 700, color: '#0f172a' }}>{property.building_code} ({property.building_name})</div>

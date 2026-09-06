@@ -138,23 +138,39 @@ export const FloorExplorer: React.FC<FloorExplorerProps> = ({
             <span>UNITS ON {selectedFloor.level_code} ({floorUnits.length}):</span>
             <span>Height: {selectedFloor.floor_height}m</span>
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
             {floorUnits.map((u) => (
               <button
                 key={u.id}
                 onClick={() => onSelectProperty(u)}
                 style={{
-                  padding: '0.2rem 0.45rem',
+                  padding: '0.35rem 0.55rem',
                   fontSize: '0.7rem',
                   fontWeight: 600,
-                  borderRadius: '4px',
+                  borderRadius: '5px',
                   border: u.status === 'CONFLICT_FLAGGED' ? '1px solid #fca5a5' : '1px solid #cbd5e1',
-                  background: u.status === 'CONFLICT_FLAGGED' ? '#fee2e2' : '#ffffff',
+                  background: u.status === 'CONFLICT_FLAGGED' ? '#fee2e2' : '#f8fafc',
                   color: u.status === 'CONFLICT_FLAGGED' ? '#dc2626' : '#0f172a',
                   cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  width: '100%',
+                  textAlign: 'left',
                 }}
               >
-                {u.unit_number} {u.status === 'CONFLICT_FLAGGED' && '⚠'}
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '0.78rem' }}>
+                    Flat {u.unit_number} {u.status === 'CONFLICT_FLAGGED' && '⚠'}
+                  </div>
+                  <div style={{ fontSize: '0.67rem', fontWeight: 400, color: u.status === 'CONFLICT_FLAGGED' ? '#b91c1c' : '#64748b', marginTop: '0.05rem' }}>
+                    {u.owner_name || 'Owner not recorded'}
+                  </div>
+                </div>
+                <div style={{ fontSize: '0.65rem', color: u.status === 'CONFLICT_FLAGGED' ? '#b91c1c' : '#94a3b8', textAlign: 'right' }}>
+                  <div>{u.area} m²</div>
+                  <div>{u.property_type?.replace(' Unit', '') || 'Unit'}</div>
+                </div>
               </button>
             ))}
           </div>

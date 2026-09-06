@@ -876,6 +876,62 @@ code, pre, .mono-code {
   width: 100%;
   height: calc(100vh - 60px);
   overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+/* ── Full Page / Fullscreen View ── */
+.map-page-container.fullpage-mode {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 99999 !important;
+  background: #0a1128;
+}
+
+.map-page-container.fullpage-mode .map-left-dock {
+  max-height: calc(100vh - 2rem);
+}
+
+.fullpage-mode-badge {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  color: #38bdf8;
+  padding: 0.35rem 0.9rem;
+  border-radius: 20px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.fullpage-mode-badge:hover {
+  background: rgba(2, 132, 199, 0.95);
+  color: #ffffff;
+  border-color: #38bdf8;
+  transform: translateX(-50%) scale(1.04);
+}
+
+.active-fullpage {
+  background: rgba(2, 132, 199, 0.9) !important;
+  color: #ffffff !important;
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
 }
 
 /* Map Top Bar */

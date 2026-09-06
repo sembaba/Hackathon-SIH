@@ -308,10 +308,10 @@ export function runTopologyValidation(
 export function propertyToBBox(p: {
   unit_number: string;
   ulpin?: string;
-  x_min?: number;
-  x_max?: number;
-  y_min?: number;
-  y_max?: number;
+  x_min?: number | null;
+  x_max?: number | null;
+  y_min?: number | null;
+  y_max?: number | null;
   z_min: number;
   z_max: number;
   volume: number;
@@ -321,13 +321,35 @@ export function propertyToBBox(p: {
   owner_name: string;
   property_type: string;
 }): BBox3D {
+  const num = p.unit_number.replace('U', '').replace('P-', '');
+  let defXMin = -15, defXMax = 15, defYMin = -10, defYMax = 10;
+  
+  if (num in ['B201', 'B101']) {
+    defXMin = -15; defXMax = 0; defYMin = -10; defYMax = 10;
+  } else if (num in ['B202', 'B102']) {
+    defXMin = 0; defXMax = 15; defYMin = -10; defYMax = 10;
+  } else if (num.endsWith('01') || num.endsWith('1')) {
+    defXMin = -15; defXMax = 0; defYMin = 0; defYMax = 10;
+  } else if (num.endsWith('02') || num.endsWith('2')) {
+    defXMin = 0; defXMax = 15; defYMin = 0; defYMax = 10;
+  } else if (num.endsWith('03') || num.endsWith('3')) {
+    if (num === '503') {
+      // Intentional Cadastral Demonstration Conflict (U503 encroaching into U504)
+      defXMin = -15; defXMax = 1.5; defYMin = -10; defYMax = 0;
+    } else {
+      defXMin = -15; defXMax = 0; defYMin = -10; defYMax = 0;
+    }
+  } else if (num.endsWith('04') || num.endsWith('4')) {
+    defXMin = 0; defXMax = 15; defYMin = -10; defYMax = 0;
+  }
+
   return {
     unit_number: p.unit_number,
     ulpin: p.ulpin,
-    x_min: p.x_min ?? -15,
-    x_max: p.x_max ?? 15,
-    y_min: p.y_min ?? -10,
-    y_max: p.y_max ?? 10,
+    x_min: p.x_min !== undefined && p.x_min !== null ? p.x_min : defXMin,
+    x_max: p.x_max !== undefined && p.x_max !== null ? p.x_max : defXMax,
+    y_min: p.y_min !== undefined && p.y_min !== null ? p.y_min : defYMin,
+    y_max: p.y_max !== undefined && p.y_max !== null ? p.y_max : defYMax,
     z_min: p.z_min,
     z_max: p.z_max,
     volume: p.volume,

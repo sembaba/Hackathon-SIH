@@ -396,18 +396,32 @@ export const Map3DPage: React.FC<Map3DPageProps> = ({ searchQuery, onClearSearch
         {/* Topology Results Summary */}
         {topoResults.length > 0 && (
           <div className="topo-results">
+            <div style={{ fontSize: '0.68rem', fontWeight: 800, color: '#f87171', padding: '4px 2px 2px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+              3D Cadastre Overlaps ({topoResults.length})
+            </div>
             {topoResults.slice(0, 3).map((r) => (
-              <div key={r.id} className={`topo-result-item ${r.severity.toLowerCase()}`}>
+              <div
+                key={r.id}
+                className={`topo-result-item ${r.severity.toLowerCase()}`}
+                onClick={() => {
+                  handleIsolateConflict();
+                  handleTriggerConflictFlow();
+                }}
+                style={{ cursor: 'pointer' }}
+                title="Click to isolate this 3D spatial overlap in the cadastre map"
+              >
                 {r.severity === 'ERROR' ? <XCircle size={11} /> : <AlertTriangle size={11} />}
-                <span>{r.unit_a} ↔ {r.unit_b} ({r.overlap_height_m.toFixed(1)}m)</span>
+                <span>{r.unit_a} ↔ {r.unit_b} ({r.overlap_height_m.toFixed(1)}m Overlap)</span>
               </div>
             ))}
-            {topoResults.length === 0 && (
-              <div className="topo-result-item ok">
-                <CheckCircle2 size={11} />
-                <span>No conflicts found</span>
-              </div>
-            )}
+            <div style={{ fontSize: '0.65rem', color: '#94a3b8', padding: '2px 4px' }}>
+              Click item to isolate 3D overlap &amp; review legal dispute
+            </div>
+          </div>
+        )}
+        {topoResults.length === 0 && !topoRunning && (
+          <div style={{ fontSize: '0.7rem', color: '#64748b', textAlign: 'center', marginTop: '4px' }}>
+            Click button above to check 3D boundaries
           </div>
         )}
       </div>

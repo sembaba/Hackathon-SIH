@@ -1,0 +1,12 @@
+Point_ID,Easting_X,Northing_Y,Elevation_Z_m,Feature_Type,Property_Unit,Floor_Level
+P101,78.16405,29.94570,15.00,Apartment_Corner,U503,Floor 5
+P102,78.16420,29.94570,15.00,Apartment_Corner,U503,Floor 5
+P103,78.16420,29.94585,18.00,Apartment_Ceiling,U503,Floor 5
+P104,78.16405,29.94585,18.00,Apartment_Ceiling,U503,Floor 5
+P105,78.16420,29.94570,17.00,Apartment_Corner,U504,Floor 5
+P106,78.16435,29.94570,17.00,Apartment_Corner,U504,Floor 5
+P107,78.16435,29.94585,20.00,Apartment_Ceiling,U504,Floor 5
+P108,78.16420,29.94585,20.00,Apartment_Ceiling,U504,Floor 5
+P201,78.16405,29.94555,-9.00,Basement_Slab,B201,Basement -2
+P202,78.16435,29.94555,-9.00,Basement_Slab,B201,Basement -2
+P203,78.16435,29.94570,-5.00,Basement_Ceiling,B201,Basement -2

@@ -1,0 +1,287 @@
+# ==============================================================================
+# VERTI-CAD: Cloud-Native High-Availability Kubernetes Architecture
+# Conforms to Deployment Architecture Diagram 2 (DMZ, Microservices, Data Layer)
+# ==============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: verticad-prod
+  labels:
+    environment: production
+    system: verticad-3d-cadastre
+---
+# ------------------------------------------------------------------------------
+# 1. POSTGIS STATEFULSET (Primary Spatial Database)
+# ------------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: verticad-postgis
+  namespace: verticad-prod
+spec:
+  serviceName: "postgis-cluster"
+  replicas: 2
+  selector:
+    matchLabels:
+      app: verticad-postgis
+  template:
+    metadata:
+      labels:
+        app: verticad-postgis
+    spec:
+      containers:
+      - name: postgis
+        image: postgis/postgis:16-3.4
+        ports:
+        - containerPort: 5432
+          name: postgresql
+        env:
+        - name: POSTGRES_DB
+          value: "verticad_cadastre"
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: verticad-db-secrets
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: verticad-db-secrets
+              key: password
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "2"
+          limits:
+            memory: "16Gi"
+            cpu: "8"
+        volumeMounts:
+        - name: postgis-data
+          mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+  - metadata:
+      name: postgis-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "fast-nvme-ssd"
+      resources:
+        requests:
+          storage: 250Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgis-service
+  namespace: verticad-prod
+spec:
+  ports:
+  - port: 5432
+    targetPort: 5432
+  selector:
+    app: verticad-postgis
+---
+# ------------------------------------------------------------------------------
+# 2. REDIS CLUSTER (Session, JWT Cache, & Tile Buffer)
+# ------------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: verticad-redis
+  namespace: verticad-prod
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: verticad-redis
+  template:
+    metadata:
+      labels:
+        app: verticad-redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7.2-alpine
+        ports:
+        - containerPort: 6379
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+  namespace: verticad-prod
+spec:
+  ports:
+  - port: 6379
+    targetPort: 6379
+  selector:
+    app: verticad-redis
+---
+# ------------------------------------------------------------------------------
+# 3. ULPIN GENERATION & VALIDATION MICROSERVICE
+# ------------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: verticad-ulpin-service
+  namespace: verticad-prod
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: verticad-ulpin-service
+  template:
+    metadata:
+      labels:
+        app: verticad-ulpin-service
+    spec:
+      containers:
+      - name: ulpin-service
+        image: verticad/ulpin-service:3.0.0
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://postgres@postgis-service:5432/verticad_cadastre"
+        - name: REDIS_HOST
+          value: "redis-service"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2"
+        livenessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+# ------------------------------------------------------------------------------
+# 4. 3D SPATIAL PROCESSING & LIDAR ENGINE MICROSERVICE
+# ------------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: verticad-3d-processing-service
+  namespace: verticad-prod
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: verticad-3d-processing-service
+  template:
+    metadata:
+      labels:
+        app: verticad-3d-processing-service
+    spec:
+      containers:
+      - name: processing-worker
+        image: verticad/spatial-3d-engine:3.0.0
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "2"
+          limits:
+            memory: "16Gi"
+            cpu: "8"
+---
+# ------------------------------------------------------------------------------
+# 5. FRONTEND WEB GIS (React + Three.js / CesiumJS 3D Portal)
+# ------------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: verticad-web-portal
+  namespace: verticad-prod
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: verticad-web-portal
+  template:
+    metadata:
+      labels:
+        app: verticad-web-portal
+    spec:
+      containers:
+      - name: web-portal
+        image: verticad/web-portal:3.0.0
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "1Gi"
+            cpu: "1"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-portal-service
+  namespace: verticad-prod
+spec:
+  ports:
+  - port: 80
+    targetPort: 80
+  selector:
+    app: verticad-web-portal
+---
+# ------------------------------------------------------------------------------
+# 6. INGRESS CONTROLLER & API GATEWAY (DMZ / SSL / WAF)
+# ------------------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: verticad-api-gateway
+  namespace: verticad-prod
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://cadastre.gov.in"
+spec:
+  tls:
+  - hosts:
+    - "verticad.gov.in"
+    - "api.verticad.gov.in"
+    secretName: verticad-tls-cert
+  rules:
+  - host: "verticad.gov.in"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: web-portal-service
+            port:
+              number: 80
+  - host: "api.verticad.gov.in"
+    http:
+      paths:
+      - path: /api/v1/ulpin
+        pathType: Prefix
+        backend:
+          service:
+            name: verticad-ulpin-service
+            port:
+              number: 8000

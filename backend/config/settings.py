@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'apps.gis',
     'apps.surveys',
     'apps.analytics',
+    'apps.pipeline',
 ]
 
 MIDDLEWARE = [

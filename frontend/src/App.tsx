@@ -11,6 +11,7 @@ import { PropertiesPage } from './pages/PropertiesPage';
 import { ValidationPage } from './pages/ValidationPage';
 import { GISLayersPage } from './pages/GISLayersPage';
 import { SurveysPage } from './pages/SurveysPage';
+import { PipelinePage } from './pages/PipelinePage';
 import { UserRole } from './types';
 import { apiService } from './services/api';
 
@@ -57,6 +58,7 @@ const AppContent: React.FC = () => {
         />
         <Routes>
           <Route path="/" element={<DashboardPage />} />
+          <Route path="/pipeline" element={<PipelinePage />} />
           <Route
             path="/3d-map"
             element={

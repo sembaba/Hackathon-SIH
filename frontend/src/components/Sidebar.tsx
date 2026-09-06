@@ -11,6 +11,7 @@ import {
   Layers,
   UploadCloud,
   AlertTriangle,
+  Satellite,
   X
 } from 'lucide-react';
 
@@ -23,6 +24,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ conflictCount, isOpen, onClose }) => {
   const navLinks = [
     { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { to: '/pipeline', label: '3D Ingestion Pipeline', icon: Satellite, badge: 'New' },
     { to: '/3d-map', label: '3D Cadastral Map', icon: Box, hero: true },
     { to: '/2d-map', label: '2D Map', icon: MapIcon },
     { to: '/parcels', label: 'Parcels', icon: Landmark },

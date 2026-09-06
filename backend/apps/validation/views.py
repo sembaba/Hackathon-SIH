@@ -76,9 +76,12 @@ class AABBValidationEngineView(APIView):
     """
     permission_classes = [permissions.AllowAny]
 
+    def get(self, request):
+        return self.post(request)
+
     def post(self, request):
         t0 = time.time()
-        client_units = request.data.get('units', None)
+        client_units = request.data.get('units', None) if hasattr(request, 'data') and request.data else None
         boxes = []
 
         if client_units and isinstance(client_units, list):

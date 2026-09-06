@@ -6,7 +6,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
-from apps.validation.views import RunValidationView
+from apps.validation.views import RunValidationView, AABBValidationEngineView
 from apps.gis.ai_and_search_views import AIProcessView, UnifiedSearchView
 
 urlpatterns = [
@@ -21,6 +21,8 @@ urlpatterns = [
     path('api/ulpin/', include('apps.ulpin.urls')),
     path('api/infrastructure/', include('apps.infrastructure.urls')),
     path('api/validation/', include('apps.validation.urls')),
+    path('api/conflicts/', AABBValidationEngineView.as_view(), name='conflicts_api'),
+    path('api/pipeline/', include('apps.pipeline.urls')),
     path('api/topology/validate/', RunValidationView.as_view(), name='topology_validate'),
     path('api/topology/', include('apps.validation.urls')),
     path('api/gis/', include('apps.gis.urls')),

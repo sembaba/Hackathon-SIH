@@ -880,6 +880,37 @@ code, pre, .mono-code {
 }
 
 /* ── Full Page / Fullscreen View ── */
+body.fullpage-3d-active {
+  overflow: hidden !important;
+}
+
+body.fullpage-3d-active .sidebar-container,
+body.fullpage-3d-active .navbar-container {
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+  pointer-events: none !important;
+}
+
+body.fullpage-3d-active .app-container {
+  display: block !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+body.fullpage-3d-active .main-content {
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  position: static !important;
+}
+
 .map-page-container.fullpage-mode {
   position: fixed !important;
   top: 0 !important;
@@ -888,8 +919,8 @@ code, pre, .mono-code {
   bottom: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  z-index: 99999 !important;
-  background: #0a1128;
+  z-index: 999999 !important;
+  background: #0a1128 !important;
 }
 
 .map-page-container.fullpage-mode .map-left-dock {

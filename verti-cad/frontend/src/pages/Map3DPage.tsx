@@ -26,6 +26,8 @@ import {
   ChevronUp,
   Maximize2,
   Minimize2,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 interface Map3DPageProps {
@@ -54,6 +56,7 @@ export const Map3DPage: React.FC<Map3DPageProps> = ({ searchQuery, onClearSearch
 
   // ── Full Page / Fullscreen View ──────────────────────────
   const [isFullPage, setIsFullPage] = useState<boolean>(false);
+  const [showOverlayUI, setShowOverlayUI] = useState<boolean>(true);
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
   // ── NEW: Camera & Render Controls ───────────────────────
@@ -153,21 +156,35 @@ export const Map3DPage: React.FC<Map3DPageProps> = ({ searchQuery, onClearSearch
       if (mapContainerRef.current?.requestFullscreen) {
         mapContainerRef.current.requestFullscreen().catch(() => {});
       }
-      showToast('📺 Full Page View active — Press Esc or F to exit');
+      showToast('📺 Full Page View active — Tabs and navigation hidden');
     } else {
       setIsFullPage(false);
+      setShowOverlayUI(true);
       if (document.fullscreenElement) {
         document.exitFullscreen().catch(() => {});
       }
-      showToast('Exited Full Page View');
+      showToast('Exited Full Page View — Navigation restored');
     }
   }, [isFullPage]);
 
-  // Fullscreen change & Keyboard shortcut listeners (Esc or F key)
+  // Completely hide Sidebar, Navbar, and other app tabs/content when full page is active
+  useEffect(() => {
+    if (isFullPage) {
+      document.body.classList.add('fullpage-3d-active');
+    } else {
+      document.body.classList.remove('fullpage-3d-active');
+    }
+    return () => {
+      document.body.classList.remove('fullpage-3d-active');
+    };
+  }, [isFullPage]);
+
+  // Fullscreen change & Keyboard shortcut listeners (Esc, F, or H key)
   useEffect(() => {
     const handleFullscreenChange = () => {
       if (!document.fullscreenElement && isFullPage) {
         setIsFullPage(false);
+        setShowOverlayUI(true);
       }
     };
 
@@ -181,6 +198,9 @@ export const Map3DPage: React.FC<Map3DPageProps> = ({ searchQuery, onClearSearch
         handleToggleFullPage();
       } else if (e.key === 'Escape' && isFullPage) {
         handleToggleFullPage();
+      } else if ((e.key === 'h' || e.key === 'H') && isFullPage) {
+        e.preventDefault();
+        setShowOverlayUI((prev) => !prev);
       }
     };
 
@@ -332,74 +352,113 @@ export const Map3DPage: React.FC<Map3DPageProps> = ({ searchQuery, onClearSearch
         onToggleFullPage={handleToggleFullPage}
       />
 
+      {/* ─── Compact Controls in Full Page Clean Mode ───── */}
+      {isFullPage && !showOverlayUI && (
+        <div style={{ position: 'absolute', top: '1rem', right: '1rem', zIndex: 45, display: 'flex', gap: '0.5rem' }}>
+          <button
+            onClick={() => setShowOverlayUI(true)}
+            className="btn btn-secondary btn-sm map-top-btn"
+            title="Show CAD tools & panels (Press H)"
+          >
+            <Eye size={13} />
+            <span>Show Tools</span>
+          </button>
+          <button
+            onClick={handleToggleFullPage}
+            className="btn btn-primary btn-sm map-top-btn active-fullpage"
+            title="Exit Full Page View (Press Esc or F)"
+          >
+            <Minimize2 size={13} />
+            <span>Exit Full Page</span>
+          </button>
+        </div>
+      )}
+
       {/* ─── Top Action Bar ─────────────────────────────── */}
-      <div
-        className="map-top-bar"
-        style={{
-          right: selectedProperty ? '380px' : '1rem',
-        }}
-      >
-        {/* Full Page View button */}
-        <button
-          onClick={handleToggleFullPage}
-          className={`btn btn-sm map-top-btn ${isFullPage ? 'btn-primary active-fullpage' : 'btn-secondary'}`}
-          title={isFullPage ? 'Exit Full Page View (Esc or F)' : 'Full Page View — Expand 3D Map (Press F)'}
-        >
-          {isFullPage ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
-          <span>{isFullPage ? 'Exit Full Page' : 'Full Page'}</span>
-        </button>
-
-        {/* Conflict button */}
-        <button
-          onClick={handleTriggerConflictFlow}
-          className="btn btn-sm map-top-btn conflict-btn"
-          title="Inspect Topology Conflict (U503 ↔ U504)"
-        >
-          <AlertTriangle size={14} color="#ffffff" />
-          <span>⚠ Topology Conflict: U503 ↔ U504 (1m Overlap)</span>
-        </button>
-
-        {/* Isolate conflict */}
-        <button
-          onClick={handleIsolateConflict}
-          className={`btn btn-sm map-top-btn ${isConflictIsolated ? 'btn-danger' : 'btn-secondary'}`}
-          title="Isolate 3D Overlap Volume"
-        >
-          <Layers size={13} />
-          <span>{isConflictIsolated ? 'Show All Floors' : 'Isolate Conflict'}</span>
-        </button>
-
-        {/* Layer toggle */}
-        <button
-          onClick={() => setShowLayerMenu(!showLayerMenu)}
-          className={`btn btn-sm map-top-btn ${showLayerMenu ? 'btn-primary' : 'btn-secondary'}`}
-          title="GIS Layers"
-        >
-          <Layers size={13} />
-          <span>Layers</span>
-        </button>
-
-        {/* 2D Map */}
-        <button
-          onClick={() => {
-            const q = selectedProperty?.unit_number || (selectedFloor ? selectedFloor.level_code : 'U503');
-            navigate(`/2d-map?query=${encodeURIComponent(q)}`);
+      {(!isFullPage || showOverlayUI) && (
+        <div
+          className="map-top-bar"
+          style={{
+            right: selectedProperty ? '380px' : '1rem',
           }}
-          className="btn btn-secondary btn-sm map-top-btn"
-          title="Switch to 2D Cadastral Footprint Map"
         >
-          <MapIcon size={13} />
-          <span>2D Map</span>
-        </button>
+          {/* Full Page View button */}
+          <button
+            onClick={handleToggleFullPage}
+            className={`btn btn-sm map-top-btn ${isFullPage ? 'btn-primary active-fullpage' : 'btn-secondary'}`}
+            title={isFullPage ? 'Exit Full Page View (Esc or F)' : 'Full Page View — Expand 3D Map (Press F)'}
+          >
+            {isFullPage ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+            <span>{isFullPage ? 'Exit Full Page' : 'Full Page'}</span>
+          </button>
 
-        {/* Reset */}
-        <button onClick={handleResetView} className="btn btn-secondary btn-sm map-top-btn" title="Reset View">
-          <RotateCcw size={13} />
-        </button>
-      </div>
+          {/* Hide/Show Panels toggle in full page */}
+          {isFullPage && (
+            <button
+              onClick={() => setShowOverlayUI(false)}
+              className="btn btn-secondary btn-sm map-top-btn"
+              title="Hide all panels for pure 3D map view (Press H)"
+            >
+              <EyeOff size={13} />
+              <span>Hide Tools</span>
+            </button>
+          )}
+
+          {/* Conflict button */}
+          <button
+            onClick={handleTriggerConflictFlow}
+            className="btn btn-sm map-top-btn conflict-btn"
+            title="Inspect Topology Conflict (U503 ↔ U504)"
+          >
+            <AlertTriangle size={14} color="#ffffff" />
+            <span>⚠ Topology Conflict: U503 ↔ U504 (1m Overlap)</span>
+          </button>
+
+          {/* Isolate conflict */}
+          <button
+            onClick={handleIsolateConflict}
+            className={`btn btn-sm map-top-btn ${isConflictIsolated ? 'btn-danger' : 'btn-secondary'}`}
+            title="Isolate 3D Overlap Volume"
+          >
+            <Layers size={13} />
+            <span>{isConflictIsolated ? 'Show All Floors' : 'Isolate Conflict'}</span>
+          </button>
+
+          {/* Layer toggle */}
+          <button
+            onClick={() => setShowLayerMenu(!showLayerMenu)}
+            className={`btn btn-sm map-top-btn ${showLayerMenu ? 'btn-primary' : 'btn-secondary'}`}
+            title="GIS Layers"
+          >
+            <Layers size={13} />
+            <span>Layers</span>
+          </button>
+
+          {/* 2D Map (hidden in full page 3D mode) */}
+          {!isFullPage && (
+            <button
+              onClick={() => {
+                const q = selectedProperty?.unit_number || (selectedFloor ? selectedFloor.level_code : 'U503');
+                navigate(`/2d-map?query=${encodeURIComponent(q)}`);
+              }}
+              className="btn btn-secondary btn-sm map-top-btn"
+              title="Switch to 2D Cadastral Footprint Map"
+            >
+              <MapIcon size={13} />
+              <span>2D Map</span>
+            </button>
+          )}
+
+          {/* Reset */}
+          <button onClick={handleResetView} className="btn btn-secondary btn-sm map-top-btn" title="Reset View">
+            <RotateCcw size={13} />
+          </button>
+        </div>
+      )}
 
       {/* ─── Unified Left Cadastre & Navigation Dock ────────────── */}
-      <div className="map-left-dock">
+      {(!isFullPage || showOverlayUI) && (
+        <div className="map-left-dock">
         {/* Camera Perspective & 3D Tools Panel */}
         <div className="camera-mode-panel">
           <div
@@ -563,6 +622,7 @@ export const Map3DPage: React.FC<Map3DPageProps> = ({ searchQuery, onClearSearch
           onSelectProperty={setSelectedProperty}
         />
       </div>
+    )}
 
       {/* ─── GIS Layer Menu ──────────────────────────────── */}
       {showLayerMenu && (
